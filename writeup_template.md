@@ -1,6 +1,6 @@
-## Writeup Template
+## Self-Driving Car Nanodegree
 
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+### Write-up
 
 ---
 
@@ -19,104 +19,121 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
-[image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+[image1]: ./output_images/Draw_cardboard/draw15.jpg "ChessBoard calib"
+[image2]: ./output_images/Undistort_images/undist7.jpg "Undistort"
+[image3]: ./output_images/Thresholding/thresh7.jpg "Threshold"
+[image4]: ./output_images/warped/topview7.jpg "WarpPerspective"
+[image5]: ./output_images/lane_detect/lane7.jpg "Sliding window lane detector"
+[image6]: ./output_images/pipeline/final7.jpg "Output"
+[video1]: ./processed.mp4 "final"
 
-## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
+## [Rubric]
 
-### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+writeup->done
+
+camera calibration->done
+
+Distortion correction->done
+
+Thresholding->done
+
+Bird's Perspective->done
+
+Sliding window detector->done
+
+Radius of curvature and offset calculation->done
+
+project_video.mp4 processed->done
+
+Discussions->done
 
 ---
 
 ### Writeup / README
 
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
+In this section, I will be explaining the pipeline used in detail to achieve our goal of advanced lane detection.
 
-You're reading it!
 
-### Camera Calibration
-
-#### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
-
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
-
-I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
-
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
+#### Camera Calibration
+I first defined object points and image points.I used a calibration chessboard to calibrate our camera.Using the chess board image found corners used it to update image points.Then this is used to get distance coefficient and camera matrix to model the perception of camera. This matrix is used to undistor images captured by the camera.
 
 ![alt text][image1]
-
-### Pipeline (single images)
-
-#### 1. Provide an example of a distortion-corrected image.
-
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
 ![alt text][image2]
 
-#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+#### Thresholding
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+Next we use the undistorted image to extract certain features especially pertaining to lane lines.Here we will use a technique called thresholding.To be more precise we will be using a combination of sobel processing and channel thresholding.Sobel processing is very good for edge detection and channel thresholding is very good for selecting certain features of image associated with the channel.
+The thresholding will use the following combination to acquire a clean lane lines.
+
+1.sobel operation in X direction
+
+2.sobel operation in y direction
+
+3.sobel direction
+
+4.sobel magnitude
+
+5.channel thresholding in Red and green channel of RGB space
+
+6.channel thresholding in Saturation channel of HLS space
+
+A combination of or/and operation is used to combine results of 6 image processing described above.The end result is shown below.
 
 ![alt text][image3]
 
-#### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+#### Bird's eye view
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
-
-```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
-```
-
-This resulted in the following source and destination points:
-
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
-
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+Here we will change the perspective of image.To make it simple , think of a rubber sheet this is the image.now you select some points on the sheet , you want to strech or compress the rubber sheet such that the selected points occupy the goal point that you decided these selected points to occupy.This is what is called perspective warping. Here we use the thresholded image and warp it in such a way you can see the road from topview.
 
 ![alt text][image4]
 
-#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
+#### Finding lanes
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+Here we use an algorithm called sliding windows.When you see the image acquired in previous process,we observe bird's eye view of the road with parallel lanes.Now we need to find the lanes and classify them into either left or right lane.For this we use two small windows one for left and other for right .The start at bottom and slowly progress upwards.If the number of points detected in window is more than a threshold which is a hyerparameter , The sliding window reorients itself mean of the cluster.This trace of midpoints and points covered by sliding window give us information about the curve that will fit the lane.But there is a problem ! how do you know what should be the inital position of sliding window? We use histogram along the y axis of the image. The x axis position with high intensity would be the starting points of the left and right lane.
 
 ![alt text][image5]
 
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+#### Fit polynomial and calculate curvature.
 
-I did this in lines # through # in my code in `my_other_file.py`
+Using the points classified into left or right lane in previous process we use polyfit function of numpy to fit a second order equation to the two clusters.Using the second order function given by polyfit we can trace the line overlapping the left and right lane.Now that we know the polynomial function of 2 lanes . we can calculate their respective curvature using 
 
-#### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+            R_curve = ((1+(2Ay+B)^2)^(3/2))/|2A|
+
+Where A and B are coefficients of the polynomial functions
+
+Also all the values we calculate in above process in pixel space.To calculate curvature in real world space you can measure the width of lane in real life and observing the corresponding pixel length in image using both information we can find the conversion ration.In our case this resolution was used.For a road with lane width of 3.7m and lane length of 30m below is the conversion ratio.
+
+            Xres = 3.7/800
+            Yres = 30/720
+
+using this ration will scale our polinomial line to realworld space and the function representing this line can be used to calculate curvature using above R_curve formula.
+
+Now to calculate the mid position between the detected left lane and right lane at the bottom most edge of the image assuming thats where the car is with respect to image.we use below formula to calculate vehicle offset
+
+    
+            lanecenter_pos= (left_lane + right_lane )/2
+    
+            center_off= (vehiclepos - lanecenter_pos)* xres
+            
+Here center_off is vehicle offset.
+        
+
+#### 5. Visualisation
+
+Finally now we have 2 polynomial functions each represent the curve fitting the left lane and right lane respectively.Now we create an empty image of same shape as our perspective warped image.Plot the lines and fill the space between the lines with shade.Now by using the information used in previous warp operation we sort of unwarp this image. This image is further combine with original image with help of opencv's weighted function.End result is the road and lanes correctly shaded with colors.We then use opencv's putText to display vehicle offset for each frame.
 
 ![alt text][image6]
+
+
 
 ---
 
 ### Pipeline (video)
 
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+
+Here's a [link to my video result](./processed.mp4)
 
 ---
 
@@ -124,4 +141,4 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+I tested this pipeline with challenge video and it failed.The issue causing this error is due to presence of patches on the road.Even if threshold is altered,not sure if  sufficent readable information about lanes be extracted from image.Lets say if we really want to do this with thresholding then i believe HLS and YUV could help , but sobel must be avoided. But again with changing perspective of camera example difference in height of terrain can cause serious issue. I think its better to go with CNN based segmentation approaches than hand engineered ones as deep networks are pretty good in generalising features that represents a road.
